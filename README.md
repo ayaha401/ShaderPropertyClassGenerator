@@ -1,0 +1,2 @@
+# ShaderPropertyClassGenerator
+UnityのShaderのPropertyからクラスを自動生成するEditor拡張
