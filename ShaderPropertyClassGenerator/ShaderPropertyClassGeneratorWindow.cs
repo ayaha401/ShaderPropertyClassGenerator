@@ -4,11 +4,18 @@ using UnityEngine;
 using UnityEditor;
 using System;
 using System.Text.RegularExpressions;
+using System.Text;
+using System.IO;
 
 public class ShaderPropertyClassGeneratorWindow : EditorWindow
 {
+    [SerializeField]
+    private string _className;
     private Shader _shader;
     private string _resultText;
+    private string _savePath;
+    string _indent = new string(' ', 4);
+
 
     /// <summary>
     /// 選択したものがShaderか調べる
@@ -44,23 +51,17 @@ public class ShaderPropertyClassGeneratorWindow : EditorWindow
             return;
         }
 
-        _resultText = string.Empty;
-
-        // プロパティの数を取得
-        int propertyCount = ShaderUtil.GetPropertyCount(_shader);
-
-        for (int i = 0; i < propertyCount; i++)
-        {
-            string propertyName = ShaderUtil.GetPropertyName(_shader, i);
-            string propertyType = ShaderUtil.GetPropertyType(_shader, i).ToString();
-
-            _resultText += $"public static readonly int {ConvertToConstantName(propertyName)}_ID = Shader.PropertyToID(\"{propertyName}\");";
-            _resultText += Environment.NewLine;
-        }
-
-        GUILayout.Label(_resultText);
+        DrawPropertyPreview();
 
         DrawSaveClipboard(_resultText);
+
+        EditorGUILayout.Space();
+
+        DrawSetClassName();
+
+        EditorGUILayout.Space();
+
+        DrawSaveClass();
     }
 
     /// <summary>
@@ -72,6 +73,69 @@ public class ShaderPropertyClassGeneratorWindow : EditorWindow
         input = input.TrimStart('_');
         string result = Regex.Replace(input, "(?<=.)([A-Z])", "_$1");
         return result.ToUpper();
+    }
+
+    /// <summary>
+    /// プロパティを変数に定義したプレビューを表示する
+    /// </summary>
+    private void DrawPropertyPreview()
+    {
+        _resultText = string.Empty;
+
+        // プロパティの数を取得
+        int propertyCount = ShaderUtil.GetPropertyCount(_shader);
+
+        for (int i = 0; i < propertyCount; i++)
+        {
+            string propertyName = ShaderUtil.GetPropertyName(_shader, i);
+            string propertyType = ShaderUtil.GetPropertyType(_shader, i).ToString();
+
+            _resultText += $"{_indent}public static readonly int {ConvertToConstantName(propertyName)}_ID = Shader.PropertyToID(\"{propertyName}\");";
+            _resultText += Environment.NewLine;
+        }
+
+        GUILayout.Label(_resultText);
+    }
+
+    /// <summary>
+    /// クラス名の入力欄
+    /// </summary>
+    private void DrawSetClassName()
+    {
+        using (new GUILayout.VerticalScope())
+        {
+            GUILayout.Label("クラス名");
+            _className = GUILayout.TextField(_className);
+        }
+    }
+
+    /// <summary>
+    /// クラスとして保存する
+    /// </summary>
+    private void DrawSaveClass()
+    {
+        if (GUILayout.Button("クラスを保存"))
+        {
+            if (String.IsNullOrEmpty(_className) || String.IsNullOrEmpty(_resultText))
+            {
+                return;
+            }
+
+            string className = _className;
+            StringBuilder classBuilder = new StringBuilder();
+            classBuilder.AppendLine("using UnityEngine;");
+            classBuilder.AppendLine("public static class " + className);
+            classBuilder.AppendLine("{");
+            classBuilder.AppendLine(_resultText);
+            classBuilder.AppendLine("}");
+
+            string selectPath = AssetDatabase.GetAssetPath(_shader);
+            _savePath = Path.GetDirectoryName(selectPath);
+
+            string classPath = Path.Combine(_savePath, className + ".cs");
+            File.WriteAllText(classPath, classBuilder.ToString());
+            AssetDatabase.Refresh();
+        }
     }
 
     /// <summary>
