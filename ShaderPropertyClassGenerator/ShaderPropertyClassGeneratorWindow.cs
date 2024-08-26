@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System;
@@ -13,11 +11,16 @@ namespace AyahaGraphicDevelopTools.ShaderPropertyClassGenerator
     {
         [SerializeField]
         private static string _className = String.Empty;
+
+        [SerializeField]
+        private bool[] _propertyIsSelected;
+
         private Shader _shader;
+        private string[] _displayTextArray;
         private string _resultText;
         private string _savePath;
-        string _indent = new string(' ', 4);
-
+        private string _indent = new string(' ', 4);
+        private bool _isOnce = false;
 
         /// <summary>
         /// 選択したものがShaderか調べる
@@ -61,7 +64,7 @@ namespace AyahaGraphicDevelopTools.ShaderPropertyClassGenerator
 
             DrawPropertyPreview();
 
-            DrawSaveClipboard(_resultText);
+            DrawSaveClipboard();
 
             EditorGUILayout.Space();
 
@@ -93,18 +96,52 @@ namespace AyahaGraphicDevelopTools.ShaderPropertyClassGenerator
             // プロパティの数を取得
             int propertyCount = ShaderUtil.GetPropertyCount(_shader);
 
-            for (int i = 0; i < propertyCount; i++)
+            if (!_isOnce)
             {
-                string propertyName = ShaderUtil.GetPropertyName(_shader, i);
+                _propertyIsSelected = new bool[propertyCount];
+                _displayTextArray = new string[propertyCount];
 
-                _resultText += $"{_indent}public static readonly int {ConvertToConstantName(propertyName)}_ID = Shader.PropertyToID(\"{propertyName}\");";
-                _resultText += Environment.NewLine;
+                for (int i = 0; i < propertyCount; i++)
+                {
+                    _propertyIsSelected[i] = true;
+                    _displayTextArray[i] = string.Empty;
+                }
+                _isOnce = true;
             }
 
             GUILayout.Label("プロパティ検出結果");
             using (new GUILayout.VerticalScope("Box"))
             {
-                GUILayout.Label(_resultText);
+                for (int i = 0; i < propertyCount; i++)
+                {
+                    string propertyName = ShaderUtil.GetPropertyName(_shader, i);
+                    string displayText = $"{_indent}public static readonly int {ConvertToConstantName(propertyName)}_ID = Shader.PropertyToID(\"{propertyName}\");";
+
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        _propertyIsSelected[i] = GUILayout.Toggle(_propertyIsSelected[i], displayText);
+                        _displayTextArray[i] = displayText;
+                    }
+                }
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("全選択"))
+                    {
+                        for (int i = 0; i < propertyCount; i++)
+                        {
+                            _propertyIsSelected[i] = true;
+                        }
+                    }
+
+                    if (GUILayout.Button("選択解除"))
+                    {
+                        for (int i = 0; i < propertyCount; i++)
+                        {
+                            _propertyIsSelected[i] = false;
+                        }
+                    }
+                }
             }
         }
 
@@ -113,12 +150,8 @@ namespace AyahaGraphicDevelopTools.ShaderPropertyClassGenerator
         /// </summary>
         private void DrawSetClassName()
         {
-            //using (new GUILayout.VerticalScope())
-            {
-                GUILayout.Label("クラス名");
-
-                _className = GUILayout.TextField(_className);
-            }
+            GUILayout.Label("クラス名");
+            _className = GUILayout.TextField(_className);
         }
 
         /// <summary>
@@ -128,6 +161,8 @@ namespace AyahaGraphicDevelopTools.ShaderPropertyClassGenerator
         {
             if (GUILayout.Button("クラスを保存"))
             {
+                SetResultText();
+
                 if (String.IsNullOrEmpty(_className) || String.IsNullOrEmpty(_resultText))
                 {
                     return;
@@ -153,12 +188,13 @@ namespace AyahaGraphicDevelopTools.ShaderPropertyClassGenerator
         /// <summary>
         /// クリップボードに保存をする
         /// </summary>
-        /// <param name="resultText">保存したいテキスト</param>
-        private void DrawSaveClipboard(string resultText)
+        private void DrawSaveClipboard()
         {
             if (GUILayout.Button("クリップボードに保存"))
             {
-                GUIUtility.systemCopyBuffer = resultText;
+                SetResultText();
+
+                GUIUtility.systemCopyBuffer = _resultText;
             }
         }
 
@@ -173,6 +209,24 @@ namespace AyahaGraphicDevelopTools.ShaderPropertyClassGenerator
             }
 
             return char.ToUpper(value[0]) + value.Substring(1);
+        }
+
+        /// <summary>
+        /// 結果のTextをSetする
+        /// </summary>
+        private void SetResultText()
+        {
+            // 一度初期化
+            _resultText = string.Empty;
+
+            for (int i = 0; i < _displayTextArray.Length; i++)
+            {
+                if (_propertyIsSelected[i])
+                {
+                    _resultText += _displayTextArray[i];
+                    _resultText += Environment.NewLine;
+                }
+            }
         }
     }
 }
