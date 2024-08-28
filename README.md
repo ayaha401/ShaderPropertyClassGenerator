@@ -9,7 +9,7 @@ UnityのShaderのPropertyからクラスを自動生成するEditor拡張
 Shaderを選択した状態で右クリック、
 Create >ShaderPropertyClass
 
-![image](https://github.com/user-attachments/assets/a02fe432-f379-4124-9149-5020e3debd62)<br>
+![image](https://github.com/user-attachments/assets/9e3fdf6c-34c2-4ce6-85bb-1f9fc3a203ae)<br>
 専用Windowが出ます。
 
 **クリップボードに保存**を押すことでクリップボードに保存できます。
@@ -25,6 +25,8 @@ public static class ColorDivedProperty
 }
 ```
 例としてこのようなクラスが作成されます。
+
+また、v1.2.0からチェックを入れたプロパティだけクリップボードに保存やクラスにすることができます。
 
 # 不具合
 未確認
