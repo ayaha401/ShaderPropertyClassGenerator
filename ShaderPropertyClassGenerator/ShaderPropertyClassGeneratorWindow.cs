@@ -16,11 +16,10 @@ namespace AyahaGraphicDevelopTools.ShaderPropertyClassGenerator
         private bool[] _propertyIsSelected;
 
         private Shader _shader;
-        private string[] _displayTextArray;
+        private string[] _resultTextArray;
         private string _resultText;
         private string _savePath;
         private string _indent = new string(' ', 4);
-        private bool _isOnce = false;
 
         /// <summary>
         /// 選択したものがShaderか調べる
@@ -53,6 +52,23 @@ namespace AyahaGraphicDevelopTools.ShaderPropertyClassGenerator
             var window = GetWindow<ShaderPropertyClassGeneratorWindow>("PropertyClassGeneratorWindow");
             window.titleContent = new GUIContent("PropertyClassGeneratorWindow");
             window._shader = shader;
+        }
+
+        private void OnEnable()
+        {
+            var shader = Selection.activeObject as Shader;
+
+            // プロパティの数を取得
+            int propertyCount = ShaderUtil.GetPropertyCount(shader);
+
+            _propertyIsSelected = new bool[propertyCount];
+            _resultTextArray = new string[propertyCount];
+
+            for (int i = 0; i < propertyCount; i++)
+            {
+                _propertyIsSelected[i] = true;
+                _resultTextArray[i] = string.Empty;
+            }
         }
 
         private void OnGUI()
@@ -96,19 +112,6 @@ namespace AyahaGraphicDevelopTools.ShaderPropertyClassGenerator
             // プロパティの数を取得
             int propertyCount = ShaderUtil.GetPropertyCount(_shader);
 
-            if (!_isOnce)
-            {
-                _propertyIsSelected = new bool[propertyCount];
-                _displayTextArray = new string[propertyCount];
-
-                for (int i = 0; i < propertyCount; i++)
-                {
-                    _propertyIsSelected[i] = true;
-                    _displayTextArray[i] = string.Empty;
-                }
-                _isOnce = true;
-            }
-
             GUILayout.Label("プロパティ検出結果");
             using (new GUILayout.VerticalScope("Box"))
             {
@@ -120,7 +123,7 @@ namespace AyahaGraphicDevelopTools.ShaderPropertyClassGenerator
                     using (new GUILayout.HorizontalScope())
                     {
                         _propertyIsSelected[i] = GUILayout.Toggle(_propertyIsSelected[i], displayText);
-                        _displayTextArray[i] = displayText;
+                        _resultTextArray[i] = displayText;
                     }
                 }
 
@@ -219,11 +222,11 @@ namespace AyahaGraphicDevelopTools.ShaderPropertyClassGenerator
             // 一度初期化
             _resultText = string.Empty;
 
-            for (int i = 0; i < _displayTextArray.Length; i++)
+            for (int i = 0; i < _resultTextArray.Length; i++)
             {
                 if (_propertyIsSelected[i])
                 {
-                    _resultText += _displayTextArray[i];
+                    _resultText += _resultTextArray[i];
                     _resultText += Environment.NewLine;
                 }
             }
